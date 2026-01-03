@@ -1,0 +1,13 @@
+node_modules
+dist
+.env
+.DS_Store
+apps/web/dist
+apps/web/.vite
+apps/api/dist
+apps/fetcher/dist
+# Log files
+*.log
+# Scans
+/tmp/cve-guardian-scans
+tmp/

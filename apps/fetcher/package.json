@@ -1,0 +1,21 @@
+{
+    "name": "cve-fetcher",
+    "version": "1.0.0",
+    "module": "src/index.ts",
+    "type": "module",
+    "dependencies": {
+        "@cve-guardian/core": "workspace:*",
+        "axios": "^1.6.5",
+        "dotenv": "^17.2.3",
+        "drizzle-orm": "^0.45.1",
+        "node-cron": "^3.0.3",
+        "postgres": "^3.4.3"
+    },
+    "scripts": {
+        "dev": "bun run --watch src/index.ts"
+    },
+    "devDependencies": {
+        "@types/node-cron": "^3.0.11",
+        "bun-types": "latest"
+    }
+}

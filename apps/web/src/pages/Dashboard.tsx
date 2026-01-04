@@ -35,6 +35,14 @@ const Dashboard = () => {
                     <h3 className="text-sm font-medium text-slate-400">Critical Alerts</h3>
                     <p className="mt-2 text-3xl font-bold text-red-500">{stats?.criticalAlerts || 0}</p>
                 </div>
+                <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/50">
+                    <h3 className="text-sm font-medium text-slate-400">High Alerts</h3>
+                    <p className="mt-2 text-3xl font-bold text-orange-500">{stats?.highAlerts || 0}</p>
+                </div>
+                <div className="p-6 rounded-xl border border-slate-800 bg-slate-900/50">
+                    <h3 className="text-sm font-medium text-slate-400">Medium Alerts</h3>
+                    <p className="mt-2 text-3xl font-bold text-yellow-500">{stats?.mediumAlerts || 0}</p>
+                </div>
             </div>
         </div>
     );

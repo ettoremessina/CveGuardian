@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { db, matches, projects, cves } from '@cve-guardian/core';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, ilike } from 'drizzle-orm';
 
 export const impactedRoute = new Hono();
 
@@ -22,9 +22,19 @@ impactedRoute.get('/', async (c) => {
     const params = c.req.query();
     let query = baseQuery;
 
-    if (params.projectId) {
-        // @ts-ignore
-        query = query.where(eq(matches.projectId, parseInt(params.projectId)));
+    if (params.projectId && params.projectId !== 'all') {
+        const pid = parseInt(params.projectId);
+        if (!isNaN(pid)) {
+            query = query.where(eq(matches.projectId, pid));
+        }
+    }
+
+    if (params.cveId) {
+        query = query.where(ilike(cves.id, `%${params.cveId}%`));
+    }
+
+    if (params.severity) {
+        query = query.where(eq(cves.severity, params.severity));
     }
 
     const results = await query.orderBy(desc(matches.detectedAt));

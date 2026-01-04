@@ -20,11 +20,23 @@ statsRoute.get('/', async (c) => {
             .innerJoin(cves, eq(matches.cveId, cves.id))
             .where(eq(cves.severity, 'CRITICAL'));
 
+        const [highCount] = await db.select({ count: sql<number>`count(*)` })
+            .from(matches)
+            .innerJoin(cves, eq(matches.cveId, cves.id))
+            .where(eq(cves.severity, 'HIGH'));
+
+        const [mediumCount] = await db.select({ count: sql<number>`count(*)` })
+            .from(matches)
+            .innerJoin(cves, eq(matches.cveId, cves.id))
+            .where(eq(cves.severity, 'MEDIUM'));
+
         return c.json({
             totalCves: Number(cveCount.count),
             activeProjects: Number(projectCount.count),
             compromisedProjects: Number(compromisedCount.count),
-            criticalAlerts: Number(criticalCount.count)
+            criticalAlerts: Number(criticalCount.count),
+            highAlerts: Number(highCount.count),
+            mediumAlerts: Number(mediumCount.count)
         });
     } catch (e) {
         console.error(e);

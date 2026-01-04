@@ -16,6 +16,7 @@ This repository is a **Bun Monorepo** containing the following workspaces:
 
 - **[Web Application](apps/web/README.md)**: The React-based frontend dashboard.
 - **[API Server](apps/api/README.md)**: The Hono-based backend handling business logic and scanning.
+- **[Fetcher Service](apps/fetcher/README.md)**: Background worker for syncing NVD data.
 - **[Core Library](packages/core/README.md)**: Shared database schemas and utilities.
 
 ## Prerequisites

@@ -6,7 +6,7 @@ export const impactedRoute = new Hono();
 
 impactedRoute.get('/', async (c) => {
     // Return all matches extended with Project and CVE info
-    const results = await db.select({
+    const baseQuery = db.select({
         matchId: matches.id,
         projectId: projects.id,
         projectName: projects.name,
@@ -17,8 +17,17 @@ impactedRoute.get('/', async (c) => {
     })
         .from(matches)
         .innerJoin(projects, eq(matches.projectId, projects.id))
-        .innerJoin(cves, eq(matches.cveId, cves.id))
-        .orderBy(desc(matches.detectedAt));
+        .innerJoin(cves, eq(matches.cveId, cves.id));
+
+    const params = c.req.query();
+    let query = baseQuery;
+
+    if (params.projectId) {
+        // @ts-ignore
+        query = query.where(eq(matches.projectId, parseInt(params.projectId)));
+    }
+
+    const results = await query.orderBy(desc(matches.detectedAt));
 
     return c.json(results);
 });

@@ -20,5 +20,6 @@ app.route('/stats', statsRoute);
 export default {
     port: 3000,
     fetch: app.fetch,
+    idleTimeout: 255 // Max allowed by Bun
 };
 

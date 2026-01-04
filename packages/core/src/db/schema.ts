@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, boolean, integer, jsonb, primaryKey } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, boolean, integer, jsonb, primaryKey, unique } from 'drizzle-orm/pg-core';
 
 // Projects Table
 export const projects = pgTable('projects', {
@@ -8,6 +8,7 @@ export const projects = pgTable('projects', {
   branch: text('branch').notNull().default('main'),
   description: text('description'),
   lastScanAt: timestamp('last_scan_at'),
+  lastScanLog: text('last_scan_log'),
   vulnerabilityCount: integer('vulnerability_count').default(0),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -46,7 +47,7 @@ export const cveAffectedItems = pgTable('cve_affected_items', {
 // Dependencies found in Projects
 export const projectDependencies = pgTable('project_dependencies', {
   id: serial('id').primaryKey(),
-  projectId: integer('project_id').references(() => projects.id).notNull(),
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
   packageName: text('package_name').notNull(),
   version: text('version').notNull(),
   ecosystem: text('ecosystem').notNull(), // npm, pip, go, etc.
@@ -60,10 +61,12 @@ export const projectDependencies = pgTable('project_dependencies', {
 // Links Project to CVE via Dependency
 export const matches = pgTable('matches', {
   id: serial('id').primaryKey(),
-  projectId: integer('project_id').references(() => projects.id).notNull(),
+  projectId: integer('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
   cveId: text('cve_id').references(() => cves.id).notNull(),
-  dependencyId: integer('dependency_id').references(() => projectDependencies.id),
+  dependencyId: integer('dependency_id').references(() => projectDependencies.id, { onDelete: 'cascade' }),
   status: text('status').default('OPEN'), // OPEN, ACKNOWLEDGED, IGNORED
   notes: text('notes'),
   detectedAt: timestamp('detected_at').defaultNow(),
-});
+}, (t) => ({
+  unq: unique('matches_unique_constraint').on(t.projectId, t.dependencyId, t.cveId),
+}));

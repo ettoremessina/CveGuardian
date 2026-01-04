@@ -9,5 +9,4 @@ apps/fetcher/dist
 # Log files
 *.log
 # Scans
-/tmp/cve-guardian-scans
-tmp/
+/tools/DepScanity

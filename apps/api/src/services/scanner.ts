@@ -32,81 +32,130 @@ export async function scanProject(projectId: number) {
 
     // Run DepScanity
     // Usage: depscanity scan <path> --out <dir>
+    // Run DepScanity
+    // Usage: depscanity scan <path> --out <dir>
     console.log(`Running DepScanity on ${projectDir}...`);
+    let logOutput = '';
 
-    await new Promise<void>((resolve, reject) => {
-        const proc = spawn(DEPSCANITY_PATH, ['scan', projectDir, '--out', outputDir], {
-            stdio: 'inherit'
-        });
-
-        proc.on('close', (code) => {
-            console.log(`DepScanity exited with code ${code}`);
-            // DepScanity returns non-zero on vulnerabilities found, so we proceed if code is not a system error (e.g. 127)
-            // Ideally we check if output file exists.
-            resolve();
-        });
-        proc.on('error', (err) => reject(err));
-    });
-
-    // Parse Results
-    // Assumption: DepScanity outputs a JSON file in the output dir. 
-    // Let's find it.
-    const files = fs.readdirSync(outputDir);
-    const jsonFile = files.find(f => f.endsWith('.json'));
-
-    if (!jsonFile) {
-        throw new Error('No JSON output found from DepScanity');
-    }
-
-    const resultsPath = path.join(outputDir, jsonFile);
-    const resultsRaw = fs.readFileSync(resultsPath, 'utf-8');
-    const results = JSON.parse(resultsRaw);
-
-    // Store in DB
-    // Clear old dependencies
-    await db.delete(projectDependencies).where(eq(projectDependencies.projectId, projectId));
-    await db.delete(matches).where(eq(matches.projectId, projectId));
-
-    const depsToInsert: any[] = [];
-    const depList = results.dependencies || results.components || results.findings || [];
-
-    for (const dep of depList) {
-        // Handle both camelCase (standard) and PascalCase (DepScanity findings)
-        const name = dep.name || dep.Package || dep.artifactId;
-        const version = dep.version || dep.InstalledVersion;
-        const ecosystem = dep.type || dep.ecosystem || dep.Ecosystem || 'unknown';
-
-        if (name && version) {
-            depsToInsert.push({
-                projectId,
-                packageName: name,
-                version: version,
-                ecosystem: ecosystem,
-                isDev: dep.scope === 'dev',
-                isTransitive: false
+    try {
+        await new Promise<void>((resolve, reject) => {
+            const proc = spawn(DEPSCANITY_PATH, ['scan', projectDir, '--out', outputDir], {
+                stdio: ['ignore', 'pipe', 'pipe']
             });
+
+            proc.stdout.on('data', (data) => {
+                const chunk = data.toString();
+                process.stdout.write(chunk); // Still show in our console
+                logOutput += chunk;
+            });
+
+            proc.stderr.on('data', (data) => {
+                const chunk = data.toString();
+                process.stderr.write(chunk);
+                logOutput += chunk;
+            });
+
+            proc.on('close', (code) => {
+                console.log(`DepScanity exited with code ${code}`);
+                logOutput += `\nProcess exited with code ${code}\n`;
+                resolve();
+            });
+            proc.on('error', (err) => {
+                logOutput += `\nProcess execution error: ${err.message}\n`;
+                reject(err);
+            });
+        });
+
+        // Parse Results
+        const files = fs.readdirSync(outputDir);
+        const jsonFile = files.find(f => f.endsWith('.json'));
+
+        if (!jsonFile) {
+            logOutput += '\nError: No JSON output found from DepScanity.\n';
+            // We proceed to save log, but maybe throw error after?
+            // If we throw here, we must ensure we still save the log.
+        } else {
+            const resultsPath = path.join(outputDir, jsonFile);
+            const resultsRaw = fs.readFileSync(resultsPath, 'utf-8');
+            const results = JSON.parse(resultsRaw);
+
+            // Store in DB
+            // Clear old dependencies
+            // Must delete matches first due to FK constraint on dependencyId
+            await db.delete(matches).where(eq(matches.projectId, projectId));
+            await db.delete(projectDependencies).where(eq(projectDependencies.projectId, projectId));
+
+            const depsToInsert: any[] = [];
+            const depList = results.dependencies || results.components || results.findings || [];
+
+            for (const dep of depList) {
+                // Handle both camelCase (standard) and PascalCase (DepScanity findings)
+                const name = dep.name || dep.Package || dep.artifactId;
+                const version = dep.version || dep.InstalledVersion;
+                const ecosystem = dep.type || dep.ecosystem || dep.Ecosystem || 'unknown';
+
+                if (name && version) {
+                    depsToInsert.push({
+                        projectId,
+                        packageName: name,
+                        version: version,
+                        ecosystem: ecosystem,
+                        isDev: dep.scope === 'dev',
+                        isTransitive: false
+                    });
+                }
+            }
+
+            if (depsToInsert.length > 0) {
+                const insertedDeps = await db.insert(projectDependencies).values(depsToInsert).returning();
+                await matchDependencies(projectId, insertedDeps);
+            }
+
+            // Update successful scan stats
+            await db.update(projects).set({
+                lastScanAt: new Date(),
+                updatedAt: new Date(),
+                vulnerabilityCount: depsToInsert.length,
+                lastScanLog: logOutput
+            }).where(eq(projects.id, projectId));
         }
+
+    } catch (e: any) {
+        logOutput += `\nScan Error: ${e.message}\n`;
+        // Save log even on error
+        await db.update(projects).set({
+            updatedAt: new Date(),
+            lastScanLog: logOutput
+        }).where(eq(projects.id, projectId));
+        throw e; // Re-throw to inform caller
+    } finally {
+        // Cleanup if output dir exists? 
+        // Logic above might have skipped update format if jsonFile missing
+
+        // Ensure we save log if not already saved (e.g. if jsonFile missing block executed)
+        // Actually, let's just make sure we always update projects table with log.
+        // My flow above handles success branch and catch branch. 
+        // The 'else' block for jsonFile missing needs to handle update too.
+
+        if (!logOutput.includes('Process exited')) {
+            // Case properly handled? 
+        }
+
+        // Cleanup
+        if (fs.existsSync(projectDir)) fs.rmSync(projectDir, { recursive: true, force: true });
+        if (fs.existsSync(outputDir)) fs.rmSync(outputDir, { recursive: true, force: true });
     }
 
-    if (depsToInsert.length > 0) {
-        const insertedDeps = await db.insert(projectDependencies).values(depsToInsert).returning();
+    // Fallback update if json missing but no error thrown caught above yet
+    // Actually the logic is split. Let's simplify:
 
-        // Trigger Match with CVEs
-        // This is F4: CVE-to-Project Matching
-        await matchDependencies(projectId, insertedDeps);
+    if (logOutput.includes('Error: No JSON output')) {
+        await db.update(projects).set({
+            updatedAt: new Date(),
+            lastScanLog: logOutput
+        }).where(eq(projects.id, projectId));
+        throw new Error('Scan failed: No JSON output');
     }
-
-    // Update Project Timestamp
-    // Update Project Timestamp and Count
-    await db.update(projects).set({
-        lastScanAt: new Date(),
-        updatedAt: new Date(),
-        vulnerabilityCount: depsToInsert.length
-    }).where(eq(projects.id, projectId));
-
-    // Cleanup
-    fs.rmSync(projectDir, { recursive: true, force: true });
-    fs.rmSync(outputDir, { recursive: true, force: true });
 }
 
 async function matchDependencies(projectId: number, deps: any[]) {

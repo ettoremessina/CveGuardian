@@ -10,6 +10,9 @@ const Projects = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
     const [viewingDependenciesId, setViewingDependenciesId] = useState<number | null>(null);
+    const [viewingLogId, setViewingLogId] = useState<number | null>(null);
+
+
     const [projectForm, setProjectForm] = useState({ name: '', repoUrl: '', branch: 'main' });
 
     const { data: projects, isLoading } = useQuery({
@@ -150,9 +153,11 @@ const Projects = () => {
                     {projects?.map((project: any) => (
                         <ProjectCard
                             key={project.id}
+                            isCreating={false}
                             project={project}
                             onEdit={handleEdit}
                             onViewResults={setViewingDependenciesId}
+                            onShowLog={setViewingLogId}
                         />
                     ))}
 
@@ -161,6 +166,21 @@ const Projects = () => {
                             No projects added yet.
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Log Modal */}
+            {viewingLogId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-800 rounded-lg w-full max-w-3xl max-h-[80vh] flex flex-col shadow-2xl">
+                        <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900 sticky top-0 rounded-t-lg">
+                            <h3 className="text-xl font-bold">Last Scan Log</h3>
+                            <button onClick={() => setViewingLogId(null)} className="text-slate-400 hover:text-white">✕</button>
+                        </div>
+                        <div className="flex-1 overflow-auto p-6 bg-slate-950 font-mono text-xs text-slate-300 whitespace-pre-wrap rounded-b-lg">
+                            {projects?.find((p: any) => p.id === viewingLogId)?.lastScanLog || 'No log available.'}
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -182,7 +202,7 @@ const Projects = () => {
     );
 };
 
-const ProjectCard = ({ project, onEdit, onViewResults }: any) => {
+const ProjectCard = ({ project, onEdit, onViewResults, onShowLog }: any) => {
     const queryClient = useQueryClient();
 
     const scanMutation = useMutation({
@@ -207,8 +227,10 @@ const ProjectCard = ({ project, onEdit, onViewResults }: any) => {
 
     return (
         <div className="group relative rounded-xl border border-slate-800 bg-slate-900/50 p-6 hover:border-slate-700 transition-all">
+            {/* ... top part ... */}
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
+                    {/* ... icon ... */}
                     <div className="bg-blue-600/10 p-2 rounded-lg text-blue-500 relative">
                         <Folder size={20} />
                         {project.vulnerabilityCount > 0 && (
@@ -217,6 +239,7 @@ const ProjectCard = ({ project, onEdit, onViewResults }: any) => {
                             </span>
                         )}
                     </div>
+                    {/* ... name ... */}
                     <div>
                         <h3 className="font-semibold text-lg">{project.name}</h3>
                         <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
@@ -225,6 +248,7 @@ const ProjectCard = ({ project, onEdit, onViewResults }: any) => {
                         </div>
                     </div>
                 </div>
+                {/* ... edit/delete buttons ... */}
                 <div className="flex gap-1">
                     <button
                         onClick={() => onEdit(project)}
@@ -243,6 +267,7 @@ const ProjectCard = ({ project, onEdit, onViewResults }: any) => {
                 </div>
             </div>
 
+
             <div className="mt-6 flex items-end justify-between">
                 <div className="text-sm text-slate-500">
                     <p>Last scan:</p>
@@ -250,7 +275,14 @@ const ProjectCard = ({ project, onEdit, onViewResults }: any) => {
                         {project.lastScanAt ? format(new Date(project.lastScanAt), 'yyyy-MM-dd HH:mm') : 'Never'}
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                    <button
+                        onClick={() => onShowLog(project.id)}
+                        className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-4 mr-2"
+                        title="View Log"
+                    >
+                        Log
+                    </button>
                     <button
                         onClick={() => onViewResults(project.id)}
                         className="text-xs text-blue-400 hover:text-blue-300 underline underline-offset-4"

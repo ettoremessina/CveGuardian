@@ -9,4 +9,5 @@ apps/fetcher/dist
 # Log files
 *.log
 # Scans
-/tools/DepScanity
+/tools/DepScanity/results-*
+/tools/DepScanity/depscanity

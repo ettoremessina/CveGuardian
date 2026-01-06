@@ -22,7 +22,8 @@ async function createDb() {
     // Connect to 'postgres' database to create the new one
     const adminUrl = url.replace(/\/([^\/]+)$/, '/postgres');
 
-    const sql = postgres(adminUrl, { ssl: 'require' });
+    const ssl = process.env.DB_SSL === 'false' ? false : (process.env.DB_SSL === 'true' ? true : (process.env.DB_SSL || 'require'));
+    const sql = postgres(adminUrl, { ssl: ssl as any });
     const dbName = 'CveGuardian';
 
     try {

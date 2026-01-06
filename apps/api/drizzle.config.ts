@@ -9,6 +9,6 @@ export default {
     dialect: 'postgresql',
     dbCredentials: {
         url: process.env.DATABASE_URL!,
-        ssl: true,
+        ssl: (process.env.DB_SSL === 'false' ? false : (process.env.DB_SSL === 'true' ? true : (process.env.DB_SSL || true))) as any,
     },
 } satisfies Config;

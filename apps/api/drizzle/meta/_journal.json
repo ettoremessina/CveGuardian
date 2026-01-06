@@ -8,6 +8,13 @@
       "when": 1767389369524,
       "tag": "0000_late_sauron",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1767691365921,
+      "tag": "0001_tiny_multiple_man",
+      "breakpoints": true
     }
   ]
 }

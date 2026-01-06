@@ -7,8 +7,15 @@ export const projectsRoute = new Hono();
 
 // GET /projects
 projectsRoute.get('/', async (c) => {
-    const allProjects = await db.select().from(projects).orderBy(desc(projects.updatedAt));
-    return c.json(allProjects);
+    try {
+        console.log('GET /projects: Selecting from DB...');
+        const allProjects = await db.select().from(projects);
+        console.log('GET /projects: Success', allProjects);
+        return c.json(allProjects);
+    } catch (e: any) {
+        console.error('GET /projects: Error', e);
+        return c.json({ error: e.message, stack: e.stack }, 500);
+    }
 });
 
 // POST /projects

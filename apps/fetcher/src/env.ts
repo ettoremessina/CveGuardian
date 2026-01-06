@@ -1,6 +1,8 @@
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import * as dotenv from 'dotenv';
-import path from 'path';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
 // Force load env from workspace root
-dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+dotenv.config({ path: resolve(__dirname, '../../../.env') });
 console.log('Environment loaded from root .env');

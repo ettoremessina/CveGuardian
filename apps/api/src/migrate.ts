@@ -3,7 +3,12 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import path from 'path';
 
 // Load env before anything else
-dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+// Load env before anything else
+dotenv.config({ path: resolve(__dirname, '../../../.env') });
 
 async function runMigrations() {
     console.log('Running migrations...');
@@ -13,7 +18,7 @@ async function runMigrations() {
     const { db } = await import('@cve-guardian/core');
 
     try {
-        await migrate(db, { migrationsFolder: './drizzle' });
+        await migrate(db, { migrationsFolder: resolve(__dirname, '../drizzle') });
         console.log('Migrations completed successfully.');
         process.exit(0);
     } catch (err) {

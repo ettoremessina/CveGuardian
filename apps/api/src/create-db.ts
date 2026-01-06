@@ -2,14 +2,27 @@ import postgres from 'postgres';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
+import { fileURLToPath } from 'url';
+// @ts-ignore
+import { dirname, resolve } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+console.log('__dirname:', __dirname);
+const envPath = resolve(__dirname, '../../../.env');
+console.log('Loading .env from:', envPath);
+dotenv.config({ path: envPath });
 
 async function createDb() {
+    console.log('DATABASE_URL:', process.env.DATABASE_URL);
     const url = process.env.DATABASE_URL!;
+    if (!url) {
+        console.error('DATABASE_URL is not defined!');
+        process.exit(1);
+    }
     // Connect to 'postgres' database to create the new one
     const adminUrl = url.replace(/\/([^\/]+)$/, '/postgres');
 
-    const sql = postgres(adminUrl);
+    const sql = postgres(adminUrl, { ssl: 'require' });
     const dbName = 'CveGuardian';
 
     try {

@@ -35,7 +35,7 @@
         "dotenv": "^17.2.3",
         "drizzle-orm": "^0.45.1",
         "node-cron": "^3.0.3",
-        "postgres": "^3.4.3",
+        "postgres": "^3.4.7",
       },
       "devDependencies": {
         "@types/node-cron": "^3.0.11",
@@ -76,7 +76,7 @@
       "version": "1.0.0",
       "dependencies": {
         "drizzle-orm": "^0.45.1",
-        "postgres": "^3.4.3",
+        "postgres": "^3.4.7",
       },
       "devDependencies": {
         "@types/node": "^20.11.0",

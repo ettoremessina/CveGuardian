@@ -11,3 +11,4 @@ apps/fetcher/dist
 # Scans
 /tools/DepScanity/results-*
 /tools/DepScanity/depscanity
+/tools/DepScanity/depscanity.exe

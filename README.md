@@ -30,3 +30,14 @@ To run scans effectively, you must compile it manually:
 2.  Compile the project (refer to the DepScanity repository for instructions).
 3.  Place the compiled executable in `tools/DepScanity/`.
 
+## Configuration
+
+This project uses environment variables for configuration.
+
+1.  Copy the example environment file:
+    ```bash
+    cp .env.example .env
+    ```
+2.  Edit `.env` and fill in your secrets (Database URL, API Keys, etc.).
+
+
